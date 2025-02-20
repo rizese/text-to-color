@@ -12,6 +12,12 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        oi: ["var(--font-oi)"],
+      },
+      fontSize: {
+        xxs: "0.625rem",
+      },
     },
   },
   plugins: [],

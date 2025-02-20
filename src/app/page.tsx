@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Palette, Copy, Check } from "lucide-react";
-import ColorControls from "@/components/ColorControls";
+import { Copy, Check, History } from "lucide-react";
 import ColorHistory from "@/components/ColorHistory";
 
 interface ColorPlaceholder {
@@ -17,12 +16,13 @@ const placeholders: ColorPlaceholder[] = [
 ];
 
 export default function Page() {
+  const [currentColor, setCurrentColor] = useState(placeholders[0].color);
   const [inputText, setInputText] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
-  const [currentColor, setCurrentColor] = useState(placeholders[0].color);
   const [colorMode, setColorMode] = useState<"dark" | "light">("light");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [colorHistory, setColorHistory] = useState<
     Array<{
       color: string;
@@ -74,6 +74,12 @@ export default function Page() {
   useEffect(() => {
     setColorMode(isDarkOrLightColor(currentColor));
   }, [currentColor]);
+
+  useEffect(() => {
+    if (isInputFocused) {
+      setCurrentColor("#1f1f1f");
+    }
+  }, [isInputFocused]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -185,6 +191,10 @@ export default function Page() {
   const ta = "";
   const textColorClass =
     (colorMode === "dark" ? "text-white" : "text-gray-900") + ta;
+  const textHeaderColorClass =
+    (colorMode === "dark"
+      ? "text-white/40 hover:text-white"
+      : "text-gray-900/40 hover:text-gray-900") + ta;
   const borderColorClass =
     (colorMode === "dark" ? "border-white/30" : "border-gray-900/30") + ta;
   const focusBorderColorClass =
@@ -200,89 +210,106 @@ export default function Page() {
       : "placeholder-gray-900/70") + ta;
   const bgColorClass =
     (colorMode === "dark" ? "bg-white/10" : "bg-gray-900/10") + ta;
+  const bgHoverColorClass =
+    (colorMode === "dark" ? "hover:bg-white/20" : "hover:bg-gray-900/20") + ta;
 
   return (
-    <main
-      className="min-h-screen duration-1000 ease-in-out flex items-center justify-center transition-all"
-      style={{ backgroundColor: currentColor }}
-    >
-      <div className="w-full max-w-2xl p-8">
-        <div className="flex items-center justify-center mb-8">
-          <Palette className={`w-8 h-8 mr-2 ${textColorClass}`} />
-          <h1 className={`text-2xl font-bold ${textColorClass}`}>
-            Text to Color
+    <main className="h-screen duration-1000 ease-in-out flex items-center justify-center transition-all bg-black overflow-hidden">
+      <main
+        className="rounded-[3rem] relative h-[calc(100%-10rem)] duration-1000 w-full ease-in-out flex items-center justify-center transition-all m-[5rem] overflow-hidden"
+        style={{ backgroundColor: currentColor }}
+      >
+        <div
+          className={`absolute top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textHeaderColorClass}`}
+        >
+          <h1 className={`text-4xl pt-2 cursor-pointer font-oi`}>
+            Text~to~Color
           </h1>
         </div>
-
-        <div className="relative mb-8">
-          <div className="relative">
-            <textarea
-              ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className={`
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={`absolute bottom-0 right-0 rounded-full flex items-center justify-center p-6 m-2 ${bgColorClass} ${textHeaderColorClass}`}
+        >
+          <History className="w-12 h-12" strokeWidth={3} />
+        </button>
+        <div className="w-full max-w-2xl p-8 relative">
+          <div className="relative mb-8">
+            <div className="relative">
+              <textarea
+                ref={inputRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
+                className={`
                 w-full p-4 text-lg border-2 rounded-xl 
                 focus:ring-2 outline-none resize-none
+                overflow-hidden
                 ${textColorClass} ${borderColorClass} ${focusBorderColorClass} 
                 ${focusRingColorClass} ${bgColorClass}
               `}
-              rows={1}
-              style={{
-                minHeight: "3rem",
-                height: "auto",
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = "auto";
-                target.style.height = `${target.scrollHeight}px`;
-              }}
-            />
-            <div
-              className={`
+                rows={1}
+                style={{
+                  minHeight: "3rem",
+                  height: "auto",
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+              />
+              {!inputText.length && !isInputFocused && (
+                <div
+                  className={`
                 absolute inset-0 pointer-events-none p-4 text-lg
                 ${isPlaceholderVisible ? "opacity-100" : "opacity-0"}
                 ${textColorClass}
               `}
+                >
+                  {placeholders[placeholderIndex].text}
+                </div>
+              )}
+            </div>
+            <div
+              className={`absolute bottom-3.5 right-3 text-xxs ${placeholderColorClass} ${textColorClass} text-right`}
             >
-              {inputText === "" ? placeholders[placeholderIndex].text : ""}
+              <span className={`${bgColorClass} p-1 rounded-md`}>Enter</span> to
+              send,{" "}
+              <span className={`${bgColorClass} p-1 rounded-md`}>
+                Shift+Enter
+              </span>{" "}
+              to continue
             </div>
           </div>
-          {/* <div
-            className={`absolute bottom-3 right-3 text-sm ${placeholderColorClass} ${textColorClass} transition-all`}
-          >
-            <span className={`${bgColorClass} p-1 my-1 text-xs rounded-md`}>
-              Enter
-            </span>{" "}
-            to send,{" "}
-            <span className={`${bgColorClass} p-1 my-1 text-xs rounded-md`}>
-              Shift+Enter
-            </span>{" "}
-            to continue
-          </div> */}
+
+          <div className="w-full mb-8 flex flex-row justify-center gap-2">
+            <ColorValue
+              className={`w-1/5 ${bgHoverColorClass}`}
+              label="HEX"
+              value={currentColor}
+            />
+            <ColorValue
+              className={`w-1/3 ${bgHoverColorClass}`}
+              label="RGB"
+              value={hexToRgb(currentColor)}
+            />
+            <ColorValue
+              className={`w-1/3 ${bgHoverColorClass}`}
+              label="HSL"
+              value={hexToHsl(currentColor)}
+            />
+          </div>
         </div>
 
-        <div className="w-full mb-8 flex flex-row justify-center gap-2">
-          <ColorValue className="w-1/5" label="HEX" value={currentColor} />
-          <ColorValue
-            className="w-1/3"
-            label="RGB"
-            value={hexToRgb(currentColor)}
-          />
-          <ColorValue
-            className="w-1/3"
-            label="HSL"
-            value={hexToHsl(currentColor)}
-          />
-        </div>
-      </div>
-
-      <ColorHistory
-        colors={colorHistory}
-        isOpen={isSidebarOpen}
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        onSelectColor={setCurrentColor}
-      />
+        <ColorHistory
+          colors={colorHistory}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          onSelectColor={setCurrentColor}
+        />
+      </main>
     </main>
   );
 }

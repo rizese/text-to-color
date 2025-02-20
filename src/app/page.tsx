@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Copy, Check, History } from "lucide-react";
 import ColorHistory from "@/components/ColorHistory";
+import GitHubButton from "react-github-btn";
 
 interface ColorPlaceholder {
   text: string;
@@ -33,6 +34,8 @@ export default function Page() {
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>(null);
+
+  const flippedColorMode = colorMode === "dark" ? "light" : "dark";
 
   // Rotate placeholders every 8 seconds with fade animation
   useEffect(() => {
@@ -179,7 +182,7 @@ export default function Page() {
       <span className={`font-mono flex-1 ${textColorClass}`}>{value}</span>
       <div>
         {copiedFormat === label ? (
-          <Check className="w-4 h-4 text-green-500" />
+          <Check className={`w-4 h-4 ${textColorClass}`} />
         ) : (
           <Copy className={`w-4 h-4 ${textColorClass}`} />
         )}
@@ -191,10 +194,10 @@ export default function Page() {
   const ta = "";
   const textColorClass =
     (colorMode === "dark" ? "text-white" : "text-gray-900") + ta;
-  const textHeaderColorClass =
+  const textOpacityColorClass =
     (colorMode === "dark"
-      ? "text-white/40 hover:text-white"
-      : "text-gray-900/40 hover:text-gray-900") + ta;
+      ? "text-white/70 hover:text-white"
+      : "text-gray-900/80 hover:text-gray-900") + ta;
   const borderColorClass =
     (colorMode === "dark" ? "border-white/30" : "border-gray-900/30") + ta;
   const focusBorderColorClass =
@@ -216,19 +219,34 @@ export default function Page() {
   return (
     <main className="h-screen duration-1000 ease-in-out flex items-center justify-center transition-all bg-black overflow-hidden">
       <main
-        className="rounded-[3rem] relative h-[calc(100%-10rem)] duration-1000 w-full ease-in-out flex items-center justify-center transition-all m-[5rem] overflow-hidden"
+        className="rounded-[3.2rem] relative h-[calc(100%-10rem)] duration-1000 w-full ease-in-out flex items-center justify-center transition-all m-[5rem] overflow-hidden"
         style={{ backgroundColor: currentColor }}
       >
         <div
-          className={`absolute top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textHeaderColorClass}`}
+          className={`absolute top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textOpacityColorClass}`}
         >
           <h1 className={`text-4xl pt-2 cursor-pointer font-oi`}>
             Text~to~Color
           </h1>
         </div>
+        <div
+          className={`absolute top-0 right-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass}`}
+        >
+          <div className="flex items-center  h-12">
+            <GitHubButton
+              href="https://github.com/rizese/text-to-color"
+              data-color-scheme={`no-preference: ${flippedColorMode}; light: ${flippedColorMode}; dark: ${flippedColorMode};`}
+              data-size="large"
+              data-show-count="true"
+              aria-label="Star rizese/text-to-color on GitHub"
+            >
+              Star
+            </GitHubButton>
+          </div>
+        </div>
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`absolute bottom-0 right-0 rounded-full flex items-center justify-center p-6 m-2 ${bgColorClass} ${textHeaderColorClass}`}
+          className={`absolute bottom-0 right-0 rounded-full flex items-center justify-center p-6 m-2 ${bgColorClass} ${textColorClass}`}
         >
           <History className="w-12 h-12" strokeWidth={3} />
         </button>

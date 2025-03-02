@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from "react";
-import { Copy, Check, History } from "lucide-react";
-import ColorHistory from "@/components/ColorHistory";
+import { Copy, Check, X } from "lucide-react";
 import GitHubButton from "react-github-btn";
 import { useTextToColor } from "@/components/useTextToColor";
 
 interface TextToColor {
   text: string;
-  color: string;
+  color: string; // this is a hex
 }
 
 const placeholders: TextToColor[] = [
@@ -24,8 +23,9 @@ export default function Page() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
   const [colorMode, setColorMode] = useState<"dark" | "light">("light");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [history, setHistory] = useState<TextToColor[]>([]);
   const [colorHistory, setColorHistory] = useState<
     Array<{
       color: string;
@@ -60,6 +60,29 @@ export default function Page() {
     };
   }, [isInputFocused]);
 
+  // Track shift key press for history display
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   const isDarkOrLightColor = (hexColor: string): "dark" | "light" => {
     const hex = hexColor.replace("#", "");
     const r = parseInt(hex.substr(0, 2), 16);
@@ -81,24 +104,29 @@ export default function Page() {
     setColorMode(isDarkOrLightColor(currentColor));
   }, [currentColor]);
 
-  useEffect(() => {
-    if (isInputFocused) {
-      setCurrentColor("#1f1f1f");
-    } else {
-      // Restore to current placeholder color when focus is lost
-      setCurrentColor(placeholders[placeholderIndex].color);
-    }
-  }, [isInputFocused, placeholderIndex]);
-
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       const keepHistory = e.shiftKey;
 
+      // Store current input for restoration
+      const currentInput = inputText;
+
+      // Get color from API
       const result = await getColorFromText(inputText, keepHistory);
+
       if (!result.error) {
-        handleNewColor(result.color, inputText);
-        setInputText("");
+        // Add to history if using Shift+Enter, otherwise reset history
+        if (keepHistory) {
+          setHistory(prev => [...prev, { text: currentInput, color: result.color }]);
+        } else {
+          setHistory([{ text: currentInput, color: result.color }]);
+        }
+
+        handleNewColor(result.color, currentInput);
+
+        // Don't clear input immediately, just focus back to it
+        inputRef.current?.focus();
       }
     }
   };
@@ -113,6 +141,11 @@ export default function Page() {
       ...prev,
     ]);
     setCurrentColor(color);
+  };
+
+  const clearInput = () => {
+    setInputText("");
+    inputRef.current?.focus();
   };
 
   // Color conversion utilities
@@ -249,13 +282,24 @@ export default function Page() {
             </GitHubButton>
           </div>
         </div>
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`absolute bottom-0 right-0 rounded-full flex items-center justify-center p-6 m-2 ${bgColorClass} ${textColorClass}`}
-        >
-          <History className="w-12 h-12" strokeWidth={3} />
-        </button>
         <div className="w-full max-w-2xl p-8 relative">
+          {/* History display when shift is pressed */}
+          {isShiftPressed && history.length > 0 && (
+            <div className={`mb-4 p-4 rounded-xl ${bgColorClass}`}>
+              <div className="space-y-2">
+                {history.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    ></div>
+                    <span className={`${textColorClass}`}>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="relative mb-8">
             <div className="relative">
               <textarea
@@ -285,6 +329,14 @@ export default function Page() {
                   target.style.height = `${target.scrollHeight}px`;
                 }}
               />
+              {inputText && !isLoading && (
+                <button
+                  onClick={clearInput}
+                  className={`absolute right-4 top-4 rounded-full p-1 hover:bg-black/10 transition-colors`}
+                >
+                  <X className={`w-4 h-4 ${textColorClass}`} />
+                </button>
+              )}
               {!inputText.length && !isInputFocused && (
                 <div
                   className={`
@@ -314,31 +366,24 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="w-full mb-8 flex flex-row justify-center gap-2">
+          <div className="w-full mb-8 flex flex-col md:flex-row justify-center gap-2">
             <ColorValue
-              className={`w-1/5 ${bgHoverColorClass}`}
+              className={`w-2/3 mx-auto md:w-1/5 ${bgHoverColorClass}`}
               label="HEX"
               value={currentColor}
             />
             <ColorValue
-              className={`w-1/3 ${bgHoverColorClass}`}
+              className={`w-2/3 mx-auto md:w-1/3 ${bgHoverColorClass}`}
               label="RGB"
               value={hexToRgb(currentColor)}
             />
             <ColorValue
-              className={`w-1/3 ${bgHoverColorClass}`}
+              className={`w-2/3 mx-auto md:w-1/3 ${bgHoverColorClass}`}
               label="HSL"
               value={hexToHsl(currentColor)}
             />
           </div>
         </div>
-
-        <ColorHistory
-          colors={colorHistory}
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          onSelectColor={setCurrentColor}
-        />
       </main>
     </main>
   );

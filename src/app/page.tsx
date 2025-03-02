@@ -1,22 +1,24 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useRef } from "react";
 import { Copy, Check, History } from "lucide-react";
 import ColorHistory from "@/components/ColorHistory";
 import GitHubButton from "react-github-btn";
+import { useTextToColor } from "@/components/useTextToColor";
 
-interface ColorPlaceholder {
+interface TextToColor {
   text: string;
   color: string;
 }
 
-const placeholders: ColorPlaceholder[] = [
+const placeholders: TextToColor[] = [
   { text: "a babbling mountain brook", color: "#4c8c64" },
   { text: "tikka masala curry", color: "#d2693c" },
   { text: "glow in the dark", color: "#9be89b" },
 ];
 
 export default function Page() {
+  const { getColorFromText, isLoading } = useTextToColor();
   const [currentColor, setCurrentColor] = useState(placeholders[0].color);
   const [inputText, setInputText] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -33,36 +35,37 @@ export default function Page() {
   >([]);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout>();
 
   const flippedColorMode = colorMode === "dark" ? "light" : "dark";
 
   // Rotate placeholders every 8 seconds with fade animation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsPlaceholderVisible(false);
-      setTimeout(() => {
-        setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-        setIsPlaceholderVisible(true);
-      }, 300);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, []);
+    // Only set up the interval if input is not focused
+    if (!isInputFocused) {
+      intervalRef.current = setInterval(() => {
+        setIsPlaceholderVisible(false);
+        setTimeout(() => {
+          setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+          setIsPlaceholderVisible(true);
+        }, 300);
+      }, 8000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isInputFocused]);
 
   const isDarkOrLightColor = (hexColor: string): "dark" | "light" => {
-    // Remove the # if present
     const hex = hexColor.replace("#", "");
-
-    // Convert hex to RGB
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-
-    // Calculate luminance using the relative luminance formula
-    // Using coefficients from WCAG 2.0
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    // Return "light" if luminance is high, "dark" if low
     return luminance > 0.5 ? "light" : "dark";
   };
 
@@ -81,20 +84,22 @@ export default function Page() {
   useEffect(() => {
     if (isInputFocused) {
       setCurrentColor("#1f1f1f");
+    } else {
+      // Restore to current placeholder color when focus is lost
+      setCurrentColor(placeholders[placeholderIndex].color);
     }
-  }, [isInputFocused]);
+  }, [isInputFocused, placeholderIndex]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter") {
       e.preventDefault();
-      // TODO: Implement API call
-      handleNewColor(placeholders[placeholderIndex].color, inputText);
-      setInputText("");
-    } else if (e.key === "Enter" && e.shiftKey) {
-      e.preventDefault();
-      // TODO: Implement API call with history
-      handleNewColor(placeholders[placeholderIndex].color, inputText);
-      setInputText("");
+      const keepHistory = e.shiftKey;
+
+      const result = await getColorFromText(inputText, keepHistory);
+      if (!result.error) {
+        handleNewColor(result.color, inputText);
+        setInputText("");
+      }
     }
   };
 
@@ -261,17 +266,19 @@ export default function Page() {
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
                 className={`
-                w-full p-4 text-lg border-2 rounded-xl 
+                w-full p-4 text-lg border-2 rounded-xl
                 focus:ring-2 outline-none resize-none
                 overflow-hidden
-                ${textColorClass} ${borderColorClass} ${focusBorderColorClass} 
+                ${textColorClass} ${borderColorClass} ${focusBorderColorClass}
                 ${focusRingColorClass} ${bgColorClass}
+                ${isLoading ? 'opacity-50 cursor-wait' : ''}
               `}
                 rows={1}
                 style={{
                   minHeight: "3rem",
                   height: "auto",
                 }}
+                disabled={isLoading}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   target.style.height = "auto";
@@ -287,6 +294,11 @@ export default function Page() {
               `}
                 >
                   {placeholders[placeholderIndex].text}
+                </div>
+              )}
+              {isLoading && (
+                <div className="absolute right-4 top-4">
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
                 </div>
               )}
             </div>

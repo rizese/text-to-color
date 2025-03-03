@@ -30,7 +30,7 @@ export default function Page() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   // this gets toggled when shift is pressed
   const [isUsingChatHistory, setIsUsingChatHistory] = useState(false);
-  const [history, setHistory] = useState<TextToColor[]>([]);
+  const [history, setHistory] = useState<TextToColor[]>(placeholders);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -262,7 +262,10 @@ export default function Page() {
     >
       <main
         className="w-full h-full rounded-[3.2rem] flex flex-col relative items-center justify-center"
-        style={{ backgroundColor: currentColor }}
+        style={{
+          backgroundColor: currentColor,
+          transition: 'background-color 0.3s ease',
+        }}
       >
         {/* Logo */}
         <div
@@ -274,9 +277,12 @@ export default function Page() {
         </div>
         {/* GitHub button */}
         <div
-          className={`md:absolute top-0 right-0 rounded-lg md:rounded-[3rem] flex items-center justify-center md:py-6 md:px-12 p-4 md:m-2 ${bgColorClass}`}
+          className={
+            `md:absolute top-0 right-0 rounded-lg md:rounded-[3rem] ${bgColorClass} ` +
+            `flex items-center justify-center md:py-6 md:px-12 p-2 md:m-2`
+          }
         >
-          <div className="flex items-center md:h-12">
+          <div className="flex items-center md:h-12 min-h-[2rem]">
             <GitHubButton
               href="https://github.com/rizese/text-to-color"
               data-color-scheme={`no-preference: ${flippedColorMode}; light: ${flippedColorMode}; dark: ${flippedColorMode};`}
@@ -295,7 +301,7 @@ export default function Page() {
               className={`w-4/5 mx-auto flex flex-col-reverse gap-0 mb-2 items-center`}
             >
               {history.map((item, index) => (
-                <div
+                <button
                   key={index}
                   data-index={index}
                   className={`p-3 w-full rounded-xl ${scaleClass(
@@ -303,18 +309,23 @@ export default function Page() {
                   )}  border border-2 ${borderColorClass}`}
                   style={{
                     backgroundColor: currentColor,
+                    transition: 'background-color 0.3s ease',
+                  }}
+                  onClick={() => {
+                    setInputText(item.text);
+                    setCurrentColor(item.color);
                   }}
                 >
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-6 h-6 rounded-md"
+                      className={`w-6 h-6 rounded-md border border-2 ${borderColorClass}`}
                       style={{ backgroundColor: item.color }}
                     ></div>
-                    <span className={`${textColorClass} italic`}>
+                    <span className={`${textColorClass} italic truncate`}>
                       &quot;{item.text}&quot;
                     </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -351,7 +362,7 @@ export default function Page() {
               {inputText && !isLoading && (
                 <button
                   onClick={clearInput}
-                  className={`absolute right-3 top-3 rounded-full p-1 hover:bg-black/10 transition-colors`}
+                  className={`absolute right-3 top-4 md:top-3 rounded-full p-1 hover:bg-black/10 transition-colors`}
                 >
                   <CircleX className={`w-6 h-6 ${textColorClass}`} />
                 </button>
@@ -368,9 +379,9 @@ export default function Page() {
                 </div>
               )}
               {isLoading && (
-                <div className="absolute right-3 top-3 p-1 ">
+                <div className="absolute right-3 top-4 md:top-3 p-1 ">
                   <div
-                    className={`animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full ${borderColorClass}`}
+                    className={`animate-spin h-6 w-6 border-2 border-t-transparent rounded-full ${borderColorClass}`}
                   ></div>
                 </div>
               )}

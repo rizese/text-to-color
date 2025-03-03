@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import { Copy, Check, X } from "lucide-react";
-import GitHubButton from "react-github-btn";
-import { useTextToColor } from "@/components/useTextToColor";
+import React, { useState, useEffect, useRef } from 'react';
+import { Copy, Check, CircleX } from 'lucide-react';
+import GitHubButton from 'react-github-btn';
+import { useTextToColor } from '@/components/useTextToColor';
 
 interface TextToColor {
   text: string;
@@ -11,34 +11,32 @@ interface TextToColor {
 }
 
 const placeholders: TextToColor[] = [
-  { text: "a babbling mountain brook", color: "#4c8c64" },
-  { text: "tikka masala curry", color: "#d2693c" },
-  { text: "glow in the dark", color: "#9be89b" },
+  { text: 'a babbling mountain brook', color: '#4c8c64' },
+  { text: 'tikka masala curry', color: '#d2693c' },
+  { text: 'glow in the dark', color: '#9be89b' },
 ];
 
 export default function Page() {
   const { getColorFromText, isLoading } = useTextToColor();
+  // this is a hex - source of truth for color
   const [currentColor, setCurrentColor] = useState(placeholders[0].color);
-  const [inputText, setInputText] = useState("");
+  // this is the input text in the main text area
+  const [inputText, setInputText] = useState('');
+  // rotates and fades the placeholder text
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
-  const [colorMode, setColorMode] = useState<"dark" | "light">("light");
+  // color mode changes based on currentColor and helps with text contrast
+  const [colorMode, setColorMode] = useState<'dark' | 'light'>('light');
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  // this gets toggled when shift is pressed
+  const [isUsingChatHistory, setIsUsingChatHistory] = useState(false);
   const [history, setHistory] = useState<TextToColor[]>([]);
-  const [colorHistory, setColorHistory] = useState<
-    Array<{
-      color: string;
-      text: string;
-      timestamp: Date;
-    }>
-  >([]);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const flippedColorMode = colorMode === "dark" ? "light" : "dark";
+  const flippedColorMode = colorMode === 'dark' ? 'light' : 'dark';
 
   // Rotate placeholders every 8 seconds with fade animation
   useEffect(() => {
@@ -60,36 +58,31 @@ export default function Page() {
     };
   }, [isInputFocused]);
 
-  // Track shift key press for history display
+  // Toggle shift key for history display
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Shift') {
-        setIsShiftPressed(true);
+        setIsUsingChatHistory((prev) => !prev);
       }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setIsShiftPressed(false);
+      if (e.key === 'Escape') {
+        setInputText('');
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
-  const isDarkOrLightColor = (hexColor: string): "dark" | "light" => {
-    const hex = hexColor.replace("#", "");
+  const isDarkOrLightColor = (hexColor: string): 'dark' | 'light' => {
+    const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? "light" : "dark";
+    return luminance > 0.5 ? 'light' : 'dark';
   };
 
   // Update current color and text color mode when placeholder changes
@@ -105,8 +98,13 @@ export default function Page() {
   }, [currentColor]);
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault();
+
+      if (inputText.length === 0) {
+        return;
+      }
+
       const keepHistory = e.shiftKey;
 
       // Store current input for restoration
@@ -118,33 +116,22 @@ export default function Page() {
       if (!result.error) {
         // Add to history if using Shift+Enter, otherwise reset history
         if (keepHistory) {
-          setHistory(prev => [...prev, { text: currentInput, color: result.color }]);
+          setHistory((prev) => [
+            ...prev,
+            { text: currentInput, color: result.color },
+          ]);
         } else {
           setHistory([{ text: currentInput, color: result.color }]);
         }
-
-        handleNewColor(result.color, currentInput);
-
+        setCurrentColor(result.color);
         // Don't clear input immediately, just focus back to it
         inputRef.current?.focus();
       }
     }
   };
 
-  const handleNewColor = (color: string, text: string) => {
-    setColorHistory((prev) => [
-      {
-        color,
-        text,
-        timestamp: new Date(),
-      },
-      ...prev,
-    ]);
-    setCurrentColor(color);
-  };
-
   const clearInput = () => {
-    setInputText("");
+    setInputText('');
     inputRef.current?.focus();
   };
 
@@ -163,9 +150,9 @@ export default function Page() {
 
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h = 0,
-      s,
-      l = (max + min) / 2;
+    const l = (max + min) / 2;
+    let h = 0;
+    let s = 0;
 
     if (max === min) {
       h = s = 0;
@@ -187,7 +174,7 @@ export default function Page() {
     }
 
     return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(
-      l * 100
+      l * 100,
     )}%)`;
   };
 
@@ -229,48 +216,67 @@ export default function Page() {
   );
 
   // const ta = " transition-all";
-  const ta = "";
+  const ta = '';
   const textColorClass =
-    (colorMode === "dark" ? "text-white" : "text-gray-900") + ta;
+    (colorMode === 'dark' ? 'text-white' : 'text-gray-900') + ta;
   const textOpacityColorClass =
-    (colorMode === "dark"
-      ? "text-white/70 hover:text-white"
-      : "text-gray-900/80 hover:text-gray-900") + ta;
+    (colorMode === 'dark'
+      ? 'text-white/70 hover:text-white'
+      : 'text-gray-900/80 hover:text-gray-900') + ta;
   const borderColorClass =
-    (colorMode === "dark" ? "border-white/30" : "border-gray-900/30") + ta;
+    (colorMode === 'dark' ? 'border-white/30' : 'border-gray-900/30') + ta;
   const focusBorderColorClass =
-    (colorMode === "dark"
-      ? "focus:border-white/50"
-      : "focus:border-gray-900/50") + ta;
+    (colorMode === 'dark'
+      ? 'focus:border-white/50'
+      : 'focus:border-gray-900/50') + ta;
   const focusRingColorClass =
-    (colorMode === "dark" ? "focus:ring-white/20" : "focus:ring-gray-900/20") +
+    (colorMode === 'dark' ? 'focus:ring-white/20' : 'focus:ring-gray-900/20') +
     ta;
   const placeholderColorClass =
-    (colorMode === "dark"
-      ? "placeholder-white/70"
-      : "placeholder-gray-900/70") + ta;
+    (colorMode === 'dark'
+      ? 'placeholder-white/70'
+      : 'placeholder-gray-900/70') + ta;
   const bgColorClass =
-    (colorMode === "dark" ? "bg-white/10" : "bg-gray-900/10") + ta;
+    (colorMode === 'dark' ? 'bg-white/10' : 'bg-gray-900/10') + ta;
   const bgHoverColorClass =
-    (colorMode === "dark" ? "hover:bg-white/20" : "hover:bg-gray-900/20") + ta;
+    (colorMode === 'dark' ? 'hover:bg-white/20' : 'hover:bg-gray-900/20') + ta;
+
+  const scaleClass = (index: number) => {
+    switch (index) {
+      case 0:
+        return 'scale-1 z-40';
+      case 1:
+        return 'scale-[0.85] -mb-2 z-30';
+      case 2:
+        return 'scale-[0.7] -mb-4 z-20';
+      case 3:
+        return 'scale-[0.55] -mb-6 z-10';
+      default:
+        return 'hidden';
+    }
+  };
 
   return (
-    <main className="h-screen duration-1000 ease-in-out flex items-center justify-center transition-all bg-black overflow-hidden">
+    <div
+      className={`w-screen h-screen ${bgColorClass} md:p-[5rem] p-0 flex flex-col items-center justify-center`}
+    >
       <main
-        className="rounded-[3.2rem] relative h-[calc(100%-10rem)] duration-1000 w-full ease-in-out flex items-center justify-center transition-all m-[5rem] overflow-hidden"
+        className="w-full h-full rounded-[3.2rem] flex flex-col relative items-center justify-center"
         style={{ backgroundColor: currentColor }}
       >
+        {/* Logo */}
         <div
           className={`absolute top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textOpacityColorClass}`}
         >
-          <h1 className={`text-4xl pt-2 cursor-pointer font-oi`}>
+          <h1 className={`text-2xl sm:text-4xl pt-2 cursor-pointer font-oi`}>
             Text~to~Color
           </h1>
         </div>
+        {/* GitHub button */}
         <div
-          className={`absolute top-0 right-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass}`}
+          className={`md:absolute top-0 right-0 rounded-lg md:rounded-[3rem] flex items-center justify-center md:py-6 md:px-12 p-4 md:m-2 ${bgColorClass}`}
         >
-          <div className="flex items-center  h-12">
+          <div className="flex items-center md:h-12">
             <GitHubButton
               href="https://github.com/rizese/text-to-color"
               data-color-scheme={`no-preference: ${flippedColorMode}; light: ${flippedColorMode}; dark: ${flippedColorMode};`}
@@ -282,24 +288,37 @@ export default function Page() {
             </GitHubButton>
           </div>
         </div>
+        {/* History */}
         <div className="w-full max-w-2xl p-8 relative">
-          {/* History display when shift is pressed */}
-          {isShiftPressed && history.length > 0 && (
-            <div className={`mb-4 p-4 rounded-xl ${bgColorClass}`}>
-              <div className="space-y-2">
-                {history.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2">
+          {isUsingChatHistory && history.length > 0 && (
+            <div
+              className={`w-4/5 mx-auto flex flex-col-reverse gap-0 mb-2 items-center`}
+            >
+              {history.map((item, index) => (
+                <div
+                  key={index}
+                  data-index={index}
+                  className={`p-3 w-full rounded-xl ${scaleClass(
+                    index,
+                  )}  border border-2 ${borderColorClass}`}
+                  style={{
+                    backgroundColor: currentColor,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
                     <div
-                      className="w-6 h-6 rounded-full"
+                      className="w-6 h-6 rounded-md"
                       style={{ backgroundColor: item.color }}
                     ></div>
-                    <span className={`${textColorClass}`}>{item.text}</span>
+                    <span className={`${textColorClass} italic`}>
+                      &quot;{item.text}&quot;
+                    </span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           )}
-
+          {/* Input */}
           <div className="relative mb-8">
             <div className="relative">
               <textarea
@@ -319,29 +338,29 @@ export default function Page() {
               `}
                 rows={1}
                 style={{
-                  minHeight: "3rem",
-                  height: "auto",
+                  minHeight: '4rem',
+                  height: 'auto',
                 }}
                 disabled={isLoading}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
-                  target.style.height = "auto";
+                  target.style.height = 'auto';
                   target.style.height = `${target.scrollHeight}px`;
                 }}
               />
               {inputText && !isLoading && (
                 <button
                   onClick={clearInput}
-                  className={`absolute right-4 top-4 rounded-full p-1 hover:bg-black/10 transition-colors`}
+                  className={`absolute right-3 top-3 rounded-full p-1 hover:bg-black/10 transition-colors`}
                 >
-                  <X className={`w-4 h-4 ${textColorClass}`} />
+                  <CircleX className={`w-6 h-6 ${textColorClass}`} />
                 </button>
               )}
               {!inputText.length && !isInputFocused && (
                 <div
                   className={`
                 absolute inset-0 pointer-events-none p-4 text-lg
-                ${isPlaceholderVisible ? "opacity-100" : "opacity-0"}
+                ${isPlaceholderVisible ? 'opacity-100' : 'opacity-0'}
                 ${textColorClass}
               `}
                 >
@@ -349,42 +368,44 @@ export default function Page() {
                 </div>
               )}
               {isLoading && (
-                <div className="absolute right-4 top-4">
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                <div className="absolute right-3 top-3 p-1 ">
+                  <div
+                    className={`animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full ${borderColorClass}`}
+                  ></div>
                 </div>
               )}
             </div>
             <div
-              className={`absolute bottom-3.5 right-3 text-xxs ${placeholderColorClass} ${textColorClass} text-right`}
+              className={`sm:absolute bottom-3.5 right-3 text-xxs ${placeholderColorClass} ${textColorClass} text-right`}
             >
               <span className={`${bgColorClass} p-1 rounded-md`}>Enter</span> to
-              send,{" "}
-              <span className={`${bgColorClass} p-1 rounded-md`}>
-                Shift+Enter
-              </span>{" "}
-              to continue
+              send,{' '}
+              <span className={`${bgColorClass} p-1 rounded-md`}>Shift</span> to
+              toggle chat history,{' '}
+              <span className={`${bgColorClass} p-1 rounded-md`}>Esc</span> to
+              clear input
             </div>
           </div>
-
-          <div className="w-full mb-8 flex flex-col md:flex-row justify-center gap-2">
+          {/* Color values */}
+          <div className="w-full mb-8 flex flex-col md:flex-row justify-center items-center gap-2">
             <ColorValue
-              className={`w-2/3 mx-auto md:w-1/5 ${bgHoverColorClass}`}
+              className={`w-full sm:w-2/3 md:w-1/5 ${bgHoverColorClass}`}
               label="HEX"
               value={currentColor}
             />
             <ColorValue
-              className={`w-2/3 mx-auto md:w-1/3 ${bgHoverColorClass}`}
+              className={`w-full sm:w-2/3 md:w-1/3 ${bgHoverColorClass}`}
               label="RGB"
               value={hexToRgb(currentColor)}
             />
             <ColorValue
-              className={`w-2/3 mx-auto md:w-1/3 ${bgHoverColorClass}`}
+              className={`w-full sm:w-2/3 md:w-1/3 ${bgHoverColorClass}`}
               label="HSL"
               value={hexToHsl(currentColor)}
             />
           </div>
         </div>
       </main>
-    </main>
+    </div>
   );
 }

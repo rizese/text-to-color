@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Copy, Check, CircleX } from 'lucide-react';
 import GitHubButton from 'react-github-btn';
-import { useTextToColor } from '@/components/useTextToColor';
+import { useTextToColor } from '@/hooks/useTextToColor';
 
 interface TextToColor {
   text: string;

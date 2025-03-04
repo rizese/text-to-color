@@ -71,7 +71,10 @@ const FEW_SHOT_EXAMPLES = [
  * @param messages The messages array to send to OpenAI
  * @returns The parsed color and imagery
  */
-async function callOpenAIWithRetry(text: string, messages: any[]) {
+async function callOpenAIWithRetry(
+  text: string,
+  messages: OpenAI.Chat.ChatCompletionMessageParam[],
+) {
   // Maximum number of retry attempts
   const MAX_RETRIES = 1;
   let retryCount = 0;
@@ -151,7 +154,7 @@ export async function POST(request: Request) {
     }
 
     // Keep existing conversation going
-    const messages = [
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       SYSTEM_PROMPT,
       ...FEW_SHOT_EXAMPLES,
       ...READY_START_MESSAGE,

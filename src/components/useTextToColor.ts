@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 interface Message {
-  role: "system" | "user" | "assistant";
+  role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
@@ -16,7 +16,13 @@ export function useTextToColor() {
   const [error, setError] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
 
-  const getColorFromText = async (text: string, keepHistory: boolean = false): Promise<TextToColorResponse> => {
+  const getColorFromText = async ({
+    text,
+    keepHistory,
+  }: {
+    text: string;
+    keepHistory: boolean;
+  }): Promise<TextToColorResponse> => {
     setIsLoading(true);
     setError(null);
 
@@ -30,7 +36,7 @@ export function useTextToColor() {
         body: JSON.stringify({
           text,
           conversationHistory,
-          keepHistory
+          keepHistory,
         }),
       });
 
@@ -45,33 +51,31 @@ export function useTextToColor() {
       if (keepHistory) {
         // Add this exchange to history
         const newMessages: Message[] = [
-          { role: "user", content: text },
-          { role: "assistant", content: data.rawOutput }
+          { role: 'user', content: text },
+          { role: 'assistant', content: data.rawOutput },
         ];
-        setConversationHistory(prev => [...prev, ...newMessages]);
-        console.log('Updated conversation history with new exchange, keeping previous history');
+        setConversationHistory((prev) => [...prev, ...newMessages]);
       } else {
         // Reset history with just this exchange
         setConversationHistory([
-          { role: "user", content: text },
-          { role: "assistant", content: data.rawOutput }
+          { role: 'user', content: text },
+          { role: 'assistant', content: data.rawOutput },
         ]);
-        console.log('Reset conversation history with just this exchange');
       }
 
       return {
         color: data.color,
-        imagery: data.imagery
+        imagery: data.imagery,
       };
-
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate color';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to generate color';
       setError(errorMessage);
       console.error('Error in getColorFromText:', errorMessage);
       return {
         color: '#1f1f1f',
         imagery: 'Error occurred',
-        error: errorMessage
+        error: errorMessage,
       };
     } finally {
       setIsLoading(false);
@@ -88,6 +92,6 @@ export function useTextToColor() {
     isLoading,
     error,
     conversationHistory,
-    clearHistory
+    clearHistory,
   };
 }

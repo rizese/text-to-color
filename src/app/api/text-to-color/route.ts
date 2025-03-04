@@ -13,6 +13,18 @@ const SYSTEM_PROMPT = {
     "You are a system that processes any input text and outputs a hex color code. \n\nThink carefully about the user's text. Picture in your mind imagery depicting what the user has written. Consider the most dominant aspect of the imagery. Output it. Consider the hue associated with this.\n\nConsider hue the most, it is important. \nA good starting point for saturation would be 40-60%\nSaturation should be boosted (70-90%) for bright, energetic, or happy imagery.\nSaturation at 20% and below is mostly greyscale, which is fine if the imagery is grey.\nTry not to use #00000 or #ffffff, those are quite boring colors - pick something else close.\n\nAlways output in this format\n\nImagery:\nHue: [value] (reasoning)\nSaturation: [value] (reasoning)\nLightness: [value] (reasoning)\n#8b705b (hex value)",
 };
 
+const READY_START_MESSAGE = [
+  {
+    role: 'user',
+    content:
+      'ok - those were few shot examples. Now you will receive your first user input. This will be the first time you will be generating a color based on a user input. Everything before this point was for context and training. Your "first" color will be the next user input you give. Respond with "ready" to indicate you are ready to receive the user input. After that point, do not response with any other output other than the provided format:\nImagery:\nHue: [value] (reasoning)\nSaturation: [value] (reasoning)\nLightness: [value] (reasoning)\n#8b705b (hex value)',
+  },
+  {
+    role: 'assistant',
+    content: 'ready',
+  },
+];
+
 // Few-shot examples to help the model understand the expected format
 const FEW_SHOT_EXAMPLES = [
   {
@@ -35,6 +47,15 @@ const FEW_SHOT_EXAMPLES = [
   },
   {
     role: 'user',
+    content: 'whiskey',
+  },
+  {
+    role: 'assistant',
+    content:
+      'Imagery: The warm, amber tones of whiskey, often seen swirling in a glass.\nHue: 35 (A warm, amber hue to capture the essence of whiskey.)\nSaturation: 70% (High saturation to reflect the rich and inviting color of the spirit.)\nLightness: 50% (Balanced lightness to convey the depth and warmth of whiskey.)\n#c47a3a',
+  },
+  {
+    role: 'user',
     content: 'glow in the dark',
   },
   {
@@ -51,31 +72,6 @@ const FEW_SHOT_EXAMPLES = [
  * @returns The parsed color and imagery
  */
 async function callOpenAIWithRetry(text: string, messages: any[]) {
-  // Log what we're sending to OpenAI
-  console.log('-------- SENDING TO OPENAI --------');
-  console.log('Input text:', text);
-  console.log('Total messages:', messages.length);
-  console.log('Messages:', messages);
-
-  // Log the last few messages for context verification
-  const userMessages = messages.filter((m) => m.role === 'user');
-  const assistantMessages = messages.filter((m) => m.role === 'assistant');
-
-  console.log(`User messages: ${userMessages.length}`);
-  console.log(
-    `Last user message: "${userMessages[userMessages.length - 1]?.content}"`,
-  );
-
-  console.log(`Assistant messages: ${assistantMessages.length}`);
-  if (assistantMessages.length > 0) {
-    console.log(
-      `Last assistant message: "${assistantMessages[
-        assistantMessages.length - 1
-      ]?.content.substring(0, 50)}..."`,
-    );
-  }
-  console.log('-------- END OF REQUEST DATA --------');
-
   // Maximum number of retry attempts
   const MAX_RETRIES = 1;
   let retryCount = 0;
@@ -100,11 +96,6 @@ async function callOpenAIWithRetry(text: string, messages: any[]) {
         throw new Error('No response from API');
       }
 
-      console.log('-------- OPENAI RESPONSE --------');
-      console.log(
-        `Response (first 100 chars): "${output.substring(0, 100)}..."`,
-      );
-
       // Parse the response
       const lines = output.split('\n');
       const imagery = lines[0].replace('Imagery: ', '').trim();
@@ -114,10 +105,6 @@ async function callOpenAIWithRetry(text: string, messages: any[]) {
         console.error('Failed to find hex color in response:', output);
         throw new Error('No valid color found in response');
       }
-
-      console.log(`Extracted color: ${hexMatch[0]}`);
-      console.log(`Extracted imagery: "${imagery.substring(0, 50)}..."`);
-      console.log('-------- END OF RESPONSE DATA --------');
 
       // Return successfully parsed data
       return {
@@ -163,43 +150,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    console.log('-------- API ROUTE RECEIVED REQUEST --------');
-    console.log('Input text:', text);
-    console.log('Keep history:', keepHistory);
-    console.log('History length:', conversationHistory.length);
+    // Keep existing conversation going
+    const messages = [
+      SYSTEM_PROMPT,
+      ...FEW_SHOT_EXAMPLES,
+      ...READY_START_MESSAGE,
+      ...(keepHistory && conversationHistory.length > 0
+        ? conversationHistory
+        : []),
+      { role: 'user', content: text },
+    ];
 
-    if (conversationHistory.length > 0) {
-      console.log('First history item role:', conversationHistory[0].role);
-      console.log(
-        'Last history item role:',
-        conversationHistory[conversationHistory.length - 1].role,
-      );
-    }
-
-    // Build messages array based on history preference
-    let messages;
-
-    if (keepHistory && conversationHistory.length > 0) {
-      // Keep existing conversation going
-      messages = [
-        SYSTEM_PROMPT,
-        ...FEW_SHOT_EXAMPLES,
-        ...conversationHistory,
-        { role: 'user', content: text },
-      ];
-      console.log('Using history', messages.length);
-    } else {
-      // Start a new conversation
-      messages = [
-        SYSTEM_PROMPT,
-        ...FEW_SHOT_EXAMPLES,
-        { role: 'user', content: text },
-      ];
-      console.log('Not using history', messages.length, messages);
-    }
+    console.log({ messages });
 
     // Call OpenAI with retry logic
     const result = await callOpenAIWithRetry(text, messages);
+
+    console.log({ result });
 
     return NextResponse.json(result);
   } catch (error) {

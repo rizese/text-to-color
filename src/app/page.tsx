@@ -11,9 +11,11 @@ interface TextToColor {
 }
 
 const placeholders: TextToColor[] = [
-  { text: 'a babbling mountain brook', color: '#4c8c64' },
+  { text: 'an Alaskan freshwater stream', color: '#6fbfbf' },
   { text: 'tikka masala curry', color: '#d2693c' },
   { text: 'glow in the dark', color: '#9be89b' },
+  { text: 'whiskey, neat, on the rocks', color: '#b57a4a' },
+  { text: 'an existential crisis', color: '#4a5a6b' },
 ];
 
 export default function Page() {
@@ -30,18 +32,25 @@ export default function Page() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   // this gets toggled when shift is pressed
   const [isUsingChatHistory, setIsUsingChatHistory] = useState(false);
-  const [history, setHistory] = useState<TextToColor[]>(placeholders);
+  const [history, setHistory] = useState<TextToColor[]>([]);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const flippedColorMode = colorMode === 'dark' ? 'light' : 'dark';
 
+  useEffect(() => {
+    if (inputText.length > 0) {
+      setTouched(true);
+    }
+  }, [inputText]);
+
   // Rotate placeholders every 8 seconds with fade animation
   useEffect(() => {
     // Only set up the interval if input is not focused
-    if (!isInputFocused) {
+    if (!isInputFocused && !touched) {
       intervalRef.current = setInterval(() => {
         setIsPlaceholderVisible(false);
         setTimeout(() => {
@@ -56,7 +65,7 @@ export default function Page() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isInputFocused]);
+  }, [isInputFocused, touched]);
 
   // Toggle shift key for history display
   useEffect(() => {
@@ -105,17 +114,18 @@ export default function Page() {
         return;
       }
 
-      const keepHistory = e.shiftKey;
-
       // Store current input for restoration
       const currentInput = inputText;
 
       // Get color from API
-      const result = await getColorFromText(inputText, keepHistory);
+      const result = await getColorFromText({
+        text: inputText,
+        keepHistory: !!isUsingChatHistory,
+      });
 
       if (!result.error) {
         // Add to history if using Shift+Enter, otherwise reset history
-        if (keepHistory) {
+        if (isUsingChatHistory) {
           setHistory((prev) => [
             ...prev,
             { text: currentInput, color: result.color },
@@ -215,50 +225,45 @@ export default function Page() {
     </button>
   );
 
-  // const ta = " transition-all";
-  const ta = '';
-  const textColorClass =
-    (colorMode === 'dark' ? 'text-white' : 'text-gray-900') + ta;
+  const textColorClass = colorMode === 'dark' ? 'text-white' : 'text-gray-900';
   const textOpacityColorClass =
-    (colorMode === 'dark'
+    colorMode === 'dark'
       ? 'text-white/70 hover:text-white'
-      : 'text-gray-900/80 hover:text-gray-900') + ta;
+      : 'text-gray-900/80 hover:text-gray-900';
   const borderColorClass =
-    (colorMode === 'dark' ? 'border-white/30' : 'border-gray-900/30') + ta;
+    colorMode === 'dark' ? 'border-white/30' : 'border-gray-900/30';
   const focusBorderColorClass =
-    (colorMode === 'dark'
-      ? 'focus:border-white/50'
-      : 'focus:border-gray-900/50') + ta;
+    colorMode === 'dark' ? 'focus:border-white/50' : 'focus:border-gray-900/50';
   const focusRingColorClass =
-    (colorMode === 'dark' ? 'focus:ring-white/20' : 'focus:ring-gray-900/20') +
-    ta;
+    colorMode === 'dark' ? 'focus:ring-white/20' : 'focus:ring-gray-900/20';
   const placeholderColorClass =
-    (colorMode === 'dark'
-      ? 'placeholder-white/70'
-      : 'placeholder-gray-900/70') + ta;
-  const bgColorClass =
-    (colorMode === 'dark' ? 'bg-white/10' : 'bg-gray-900/10') + ta;
+    colorMode === 'dark' ? 'placeholder-white/70' : 'placeholder-gray-900/70';
+  const bgColorClass = colorMode === 'dark' ? 'bg-white/10' : 'bg-gray-900/10';
   const bgHoverColorClass =
-    (colorMode === 'dark' ? 'hover:bg-white/20' : 'hover:bg-gray-900/20') + ta;
+    colorMode === 'dark' ? 'hover:bg-white/20' : 'hover:bg-gray-900/20';
+  const selectionColorClass =
+    colorMode === 'dark' ? 'selection:bg-white/20' : 'selection:bg-gray-900/20';
 
-  const scaleClass = (index: number) => {
-    switch (index) {
-      case 0:
+  const scaleClass = (index: number, length: number): string => {
+    const posFromEnd = length - 1 - index;
+
+    switch (posFromEnd) {
+      case 0: // Last element
         return 'scale-1 z-40';
-      case 1:
+      case 1: // Second-to-last
         return 'scale-[0.85] -mb-2 z-30';
-      case 2:
+      case 2: // Third-to-last
         return 'scale-[0.7] -mb-4 z-20';
-      case 3:
+      case 3: // Fourth-to-last
         return 'scale-[0.55] -mb-6 z-10';
-      default:
+      default: // Earlier elements or invalid indices
         return 'hidden';
     }
   };
 
   return (
     <div
-      className={`w-screen h-screen ${bgColorClass} md:p-[5rem] p-0 flex flex-col items-center justify-center`}
+      className={`w-screen h-screen ${bgColorClass} ${selectionColorClass} md:p-[5rem] p-0 flex flex-col items-center justify-center`}
     >
       <main
         className="w-full h-full rounded-[3.2rem] flex flex-col relative items-center justify-center"
@@ -269,7 +274,7 @@ export default function Page() {
       >
         {/* Logo */}
         <div
-          className={`absolute top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textOpacityColorClass}`}
+          className={`absolute md:w-auto w-[calc(100%-1rem)] top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textOpacityColorClass}`}
         >
           <h1 className={`text-2xl sm:text-4xl pt-2 cursor-pointer font-oi`}>
             Text~to~Color
@@ -298,7 +303,7 @@ export default function Page() {
         <div className="w-full max-w-2xl p-8 relative">
           {isUsingChatHistory && history.length > 0 && (
             <div
-              className={`w-4/5 mx-auto flex flex-col-reverse gap-0 mb-2 items-center`}
+              className={`w-4/5 mx-auto flex flex-col gap-0 mb-2 items-center`}
             >
               {history.map((item, index) => (
                 <button
@@ -306,6 +311,7 @@ export default function Page() {
                   data-index={index}
                   className={`p-3 w-full rounded-xl ${scaleClass(
                     index,
+                    history.length,
                   )}  border border-2 ${borderColorClass}`}
                   style={{
                     backgroundColor: currentColor,
@@ -367,7 +373,7 @@ export default function Page() {
                   <CircleX className={`w-6 h-6 ${textColorClass}`} />
                 </button>
               )}
-              {!inputText.length && !isInputFocused && (
+              {!inputText.length && !isInputFocused && !touched && (
                 <div
                   className={`
                 absolute inset-0 pointer-events-none p-4 text-lg
@@ -400,17 +406,17 @@ export default function Page() {
           {/* Color values */}
           <div className="w-full mb-8 flex flex-col md:flex-row justify-center items-center gap-2">
             <ColorValue
-              className={`w-full sm:w-2/3 md:w-1/5 ${bgHoverColorClass}`}
+              className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
               label="HEX"
               value={currentColor}
             />
             <ColorValue
-              className={`w-full sm:w-2/3 md:w-1/3 ${bgHoverColorClass}`}
+              className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
               label="RGB"
               value={hexToRgb(currentColor)}
             />
             <ColorValue
-              className={`w-full sm:w-2/3 md:w-1/3 ${bgHoverColorClass}`}
+              className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
               label="HSL"
               value={hexToHsl(currentColor)}
             />

@@ -2,23 +2,55 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Database Setup
+
+This project uses PostgreSQL with Prisma for data storage.
+
+1. Start the database:
+
+   ```bash
+   yarn db:setup
+   ```
+
+2. Run database migrations:
+   ```bash
+   yarn db:migrate
+   ```
+
+### Running the Application
+
+Run the development server:
 
 ```bash
-npm run dev
-# or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Admin Dashboard
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+An admin dashboard is available at [http://localhost:3000/admin](http://localhost:3000/admin) to view all color requests and user sessions.
+
+## Caching System
+
+The application implements a database caching system for text-to-color conversions:
+
+- First-time requests are processed by OpenAI and stored in the database
+- Subsequent identical requests (case-insensitive) are served from the database cache
+- Conversation-based requests (with history) bypass the cache completely
+
+This reduces API costs and improves response times for common queries.
+
+## Deployment
+
+Deployment to Vercel or other platforms is simplified:
+
+1. The `build` script automatically runs migrations
+2. The `postinstall` script generates the Prisma client
+3. All you need is to set the following environment variables in your hosting platform:
+   - `POSTGRES_URL`: PostgreSQL connection string
+   - `DIRECT_URL`: (for Vercel) Direct connection string
+   - `OPENAI_API_KEY`: Your OpenAI API key
 
 ## Learn More
 

@@ -6,16 +6,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 This project uses PostgreSQL with Prisma for data storage.
 
-1. Start the database:
-
-   ```bash
-   yarn db:setup
-   ```
-
-2. Run database migrations:
-   ```bash
-   yarn db:migrate
-   ```
+```bash
+yarn db:setup
+```
 
 ### Running the Application
 
@@ -27,10 +20,6 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Admin Dashboard
-
-An admin dashboard is available at [http://localhost:3000/admin](http://localhost:3000/admin) to view all color requests and user sessions.
-
 ## Caching System
 
 The application implements a database caching system for text-to-color conversions:
@@ -40,17 +29,6 @@ The application implements a database caching system for text-to-color conversio
 - Conversation-based requests (with history) bypass the cache completely
 
 This reduces API costs and improves response times for common queries.
-
-## Deployment
-
-Deployment to Vercel or other platforms is simplified:
-
-1. The `build` script automatically runs migrations
-2. The `postinstall` script generates the Prisma client
-3. All you need is to set the following environment variables in your hosting platform:
-   - `POSTGRES_URL`: PostgreSQL connection string
-   - `DIRECT_URL`: (for Vercel) Direct connection string
-   - `OPENAI_API_KEY`: Your OpenAI API key
 
 ## Learn More
 

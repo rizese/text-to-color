@@ -27,10 +27,8 @@ model ColorRequest {
   session   Session  @relation(fields: [sessionId], references: [id])
   inputText String   @db.Text
   hexColor  String
-  imagery   String   @db.Text
-  reasoning String?  @db.Text
+  rawOutput String   @db.Text
   createdAt DateTime @default(now())
-  ipAddress String?
 
   @@index([inputText])
 }

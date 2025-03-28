@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 type MessageRole = 'system' | 'user' | 'assistant';
 
-interface ChatMessage {
+export interface ChatMessage {
   role: MessageRole;
   content: string;
 }
@@ -73,7 +73,6 @@ const FEW_SHOT_EXAMPLES: ChatMessage[] = [
 
 export interface ColorResult {
   color: string;
-  imagery: string;
   rawOutput: string;
 }
 
@@ -82,7 +81,7 @@ export interface ColorResult {
  * @param text The input text
  * @param conversationHistory Previous conversation history (if any)
  * @param keepHistory Whether to maintain conversation history
- * @returns The parsed color and imagery
+ * @returns The parsed color and raw output
  */
 export async function generateColorFromText(
   text: string,
@@ -124,9 +123,7 @@ export async function generateColorFromText(
         throw new Error('No response from API');
       }
 
-      // Parse the response
-      const lines = output.split('\n');
-      const imagery = lines[0].replace('Imagery: ', '').trim();
+      // Extract the hex color from the response
       const hexMatch = output.match(/#[0-9a-fA-F]{6}/);
 
       if (!hexMatch) {
@@ -137,7 +134,6 @@ export async function generateColorFromText(
       // Return successfully parsed data
       return {
         color: hexMatch[0],
-        imagery: imagery,
         rawOutput: output,
       };
     } catch (error) {
@@ -166,26 +162,4 @@ export async function generateColorFromText(
 
   // This shouldn't be reached due to the throw above, but TypeScript requires a return
   throw new Error('Failed to get valid response after retries');
-}
-
-/**
- * Extract reasoning from the raw OpenAI output
- * @param rawOutput The raw output from OpenAI
- * @returns The extracted reasoning or null if not found
- */
-export function extractReasoning(rawOutput: string): string | null {
-  const lines = rawOutput.split('\n');
-  let reasoning = '';
-
-  // Combine the hue, saturation, and lightness reasoning
-  for (const line of lines) {
-    if (line.includes('(reasoning)')) {
-      const reasoningMatch = line.match(/\((.+)\)/);
-      if (reasoningMatch) {
-        reasoning += reasoningMatch[1] + ' ';
-      }
-    }
-  }
-
-  return reasoning.trim() || null;
 }

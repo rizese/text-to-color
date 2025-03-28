@@ -5,19 +5,25 @@ import {
   recordColorRequest,
   findExistingColorRequest,
 } from '@/lib/db-utils';
-import { generateColorFromText, extractReasoning } from '@/lib/openai-service';
+import { generateColorFromText } from '@/lib/openai-service';
+import type { ChatMessage } from '@/lib/openai-service';
 
 export async function POST(request: NextRequest) {
   try {
     // Parse the request body
-    const body = await request.json();
+    const body: {
+      text: string;
+      conversationHistory: ChatMessage[];
+      keepHistory: boolean;
+    } = await request.json();
     const { text, conversationHistory = [], keepHistory = false } = body;
+    const utilizeCache = !keepHistory;
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    // Get session ID from cookies
+    // Get session ID from cookies, reject request if not found
     const sessionCookie = request.cookies.get('session')?.value;
     if (!sessionCookie) {
       return NextResponse.json(
@@ -32,9 +38,7 @@ export async function POST(request: NextRequest) {
     let result;
     let fromCache = false;
 
-    // Check if we should use the cache
-    // Skip cache if conversation history is being used
-    if (!keepHistory && conversationHistory.length === 0) {
+    if (utilizeCache) {
       // Try to find the result in the cache
       const cachedResult = await findExistingColorRequest(text);
 
@@ -43,6 +47,8 @@ export async function POST(request: NextRequest) {
         result = cachedResult;
         fromCache = true;
       }
+    } else {
+      console.log('Not searching cache, keepHistory is true');
     }
 
     // If we don't have a result from the cache, call OpenAI
@@ -55,18 +61,16 @@ export async function POST(request: NextRequest) {
       );
 
       // Only store in the database if this is not a conversation-based query
-      if (!keepHistory && conversationHistory.length === 0) {
-        const reasoning = extractReasoning(result.rawOutput);
-
+      if (utilizeCache) {
         // Store the request in the database for future cache hits
         await recordColorRequest(
           sessionCookie,
           text,
           result.color,
-          result.imagery,
-          reasoning,
-          request,
+          result.rawOutput,
         );
+      } else {
+        console.log('Not saving to cache, keepHistory is true');
       }
     }
 

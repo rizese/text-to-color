@@ -14,10 +14,8 @@ CREATE TABLE "ColorRequest" (
     "sessionId" TEXT NOT NULL,
     "inputText" TEXT NOT NULL,
     "hexColor" TEXT NOT NULL,
-    "imagery" TEXT NOT NULL,
-    "reasoning" TEXT,
+    "rawOutput" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "ipAddress" TEXT,
 
     CONSTRAINT "ColorRequest_pkey" PRIMARY KEY ("id")
 );

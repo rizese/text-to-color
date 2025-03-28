@@ -41,6 +41,7 @@ export default function Page() {
 
   const flippedColorMode = colorMode === 'dark' ? 'light' : 'dark';
 
+  // toggle touched when input is focused
   useEffect(() => {
     if (inputText.length > 0) {
       setTouched(true);
@@ -49,7 +50,7 @@ export default function Page() {
 
   // Rotate placeholders every 8 seconds with fade animation
   useEffect(() => {
-    // Only set up the interval if input is not focused
+    // Only set up the interval if input is not focused and hasn't been touched
     if (!isInputFocused && !touched) {
       intervalRef.current = setInterval(() => {
         setIsPlaceholderVisible(false);
@@ -67,7 +68,7 @@ export default function Page() {
     };
   }, [isInputFocused, touched]);
 
-  // Toggle shift key for history display
+  // Toggle history display when shift key is pressed
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Shift') {
@@ -85,15 +86,6 @@ export default function Page() {
     };
   }, []);
 
-  const isDarkOrLightColor = (hexColor: string): 'dark' | 'light' => {
-    const hex = hexColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? 'light' : 'dark';
-  };
-
   // Update current color and text color mode when placeholder changes
   useEffect(() => {
     const newColor = placeholders[placeholderIndex].color;
@@ -105,6 +97,15 @@ export default function Page() {
   useEffect(() => {
     setColorMode(isDarkOrLightColor(currentColor));
   }, [currentColor]);
+
+  const isDarkOrLightColor = (hexColor: string): 'dark' | 'light' => {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? 'light' : 'dark';
+  };
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
@@ -153,6 +154,7 @@ export default function Page() {
     return `rgb(${r}, ${g}, ${b})`;
   };
 
+  // Color conversion utilities
   const hexToHsl = (hex: string): string => {
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -201,7 +203,7 @@ export default function Page() {
     }, 2000);
   };
 
-  const ColorValue = ({
+  const CopyColorButton = ({
     label,
     value,
     className,
@@ -225,6 +227,7 @@ export default function Page() {
     </button>
   );
 
+  // tailwind classes that switch between dark and light mode based on currentColor
   const textColorClass = colorMode === 'dark' ? 'text-white' : 'text-gray-900';
   const textOpacityColorClass =
     colorMode === 'dark'
@@ -244,7 +247,8 @@ export default function Page() {
   const selectionColorClass =
     colorMode === 'dark' ? 'selection:bg-white/20' : 'selection:bg-gray-900/20';
 
-  const scaleClass = (index: number, length: number): string => {
+  // tailwind classes that scale the history items based on their position
+  const historyClass = (index: number, length: number): string => {
     const posFromEnd = length - 1 - index;
 
     switch (posFromEnd) {
@@ -309,7 +313,7 @@ export default function Page() {
                 <button
                   key={index}
                   data-index={index}
-                  className={`p-3 w-full rounded-xl ${scaleClass(
+                  className={`p-3 w-full rounded-xl ${historyClass(
                     index,
                     history.length,
                   )}  border border-2 ${borderColorClass}`}
@@ -405,17 +409,17 @@ export default function Page() {
           </div>
           {/* Color values */}
           <div className="w-full mb-8 flex flex-col md:flex-row justify-center items-center gap-2">
-            <ColorValue
+            <CopyColorButton
               className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
               label="HEX"
               value={currentColor}
             />
-            <ColorValue
+            <CopyColorButton
               className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
               label="RGB"
               value={hexToRgb(currentColor)}
             />
-            <ColorValue
+            <CopyColorButton
               className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
               label="HSL"
               value={hexToHsl(currentColor)}

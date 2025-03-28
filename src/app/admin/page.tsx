@@ -13,10 +13,8 @@ type ColorRequestWithSession = {
   sessionId: string;
   inputText: string;
   hexColor: string;
-  imagery: string;
-  reasoning: string | null;
+  rawOutput: string;
   createdAt: Date;
-  ipAddress: string | null;
   session: {
     id: string;
     ipAddress: string | null;
@@ -63,7 +61,7 @@ export default async function AdminPage() {
                 <th className="py-2 px-4 border-b text-left">IP Address</th>
                 <th className="py-2 px-4 border-b text-left">Input Text</th>
                 <th className="py-2 px-4 border-b text-left">Color</th>
-                <th className="py-2 px-4 border-b text-left">Imagery</th>
+                <th className="py-2 px-4 border-b text-left">Output</th>
                 <th className="py-2 px-4 border-b text-left">Created At</th>
               </tr>
             </thead>
@@ -73,7 +71,7 @@ export default async function AdminPage() {
                   <td className="py-2 px-4 border-b">{request.id}</td>
                   <td className="py-2 px-4 border-b">{request.sessionId}</td>
                   <td className="py-2 px-4 border-b">
-                    {request.ipAddress || 'N/A'}
+                    {request.session.ipAddress || 'N/A'}
                   </td>
                   <td className="py-2 px-4 border-b">{request.inputText}</td>
                   <td className="py-2 px-4 border-b">
@@ -85,7 +83,11 @@ export default async function AdminPage() {
                       {request.hexColor}
                     </div>
                   </td>
-                  <td className="py-2 px-4 border-b">{request.imagery}</td>
+                  <td className="py-2 px-4 border-b">
+                    <pre className="whitespace-pre-wrap font-mono text-xs">
+                      {request.rawOutput}
+                    </pre>
+                  </td>
                   <td className="py-2 px-4 border-b">
                     {new Date(request.createdAt).toLocaleString()}
                   </td>

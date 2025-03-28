@@ -36,30 +36,22 @@ export async function ensureSession(
 /**
  * Records a color request in the database
  * @param sessionId The session ID
- * @param inputText The user's input text
+ * @param inputText The input text
  * @param hexColor The generated hex color
- * @param imagery The imagery description
- * @param reasoning The reasoning for the color
- * @param req The Next.js request object
+ * @param rawOutput The raw output from the LLM
  */
 export async function recordColorRequest(
   sessionId: string,
   inputText: string,
   hexColor: string,
-  imagery: string,
-  reasoning: string | null,
-  req: NextRequest,
+  rawOutput: string,
 ): Promise<void> {
-  const ipAddress = getIpAddress(req);
-
   await prisma.colorRequest.create({
     data: {
       sessionId,
       inputText,
       hexColor,
-      imagery,
-      reasoning,
-      ipAddress,
+      rawOutput,
     },
   });
 }
@@ -72,6 +64,7 @@ export async function recordColorRequest(
 export async function findExistingColorRequest(
   inputText: string,
 ): Promise<ColorResult | null> {
+  console.log(`Checking cache for: ${inputText}`);
   // Normalize input text (trim whitespace, convert to lowercase)
   const normalizedText = inputText.trim().toLowerCase();
 
@@ -94,10 +87,7 @@ export async function findExistingColorRequest(
     // Format the result to match the ColorResult interface
     return {
       color: existingRequest.hexColor,
-      imagery: existingRequest.imagery,
-      rawOutput: `Imagery: ${existingRequest.imagery}\n${
-        existingRequest.reasoning ? existingRequest.reasoning : ''
-      }\n${existingRequest.hexColor}`,
+      rawOutput: existingRequest.rawOutput,
     };
   }
 

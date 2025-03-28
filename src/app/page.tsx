@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Copy, Check, CircleX } from 'lucide-react';
 import GitHubButton from 'react-github-btn';
 import { useTextToColor } from '@/hooks/useTextToColor';
+import Head from 'next/head';
 
 interface TextToColor {
   text: string;
@@ -115,29 +116,42 @@ export default function Page() {
         return;
       }
 
-      // Store current input for restoration
-      const currentInput = inputText;
+      await handleSubmit();
+    }
+  };
 
-      // Get color from API
-      const result = await getColorFromText({
-        text: inputText,
-        keepHistory: !!isUsingChatHistory,
-      });
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    if (inputText.length === 0) {
+      return;
+    }
 
-      if (!result.error) {
-        // Add to history if using Shift+Enter, otherwise reset history
-        if (isUsingChatHistory) {
-          setHistory((prev) => [
-            ...prev,
-            { text: currentInput, color: result.color },
-          ]);
-        } else {
-          setHistory([{ text: currentInput, color: result.color }]);
-        }
-        setCurrentColor(result.color);
-        // Don't clear input immediately, just focus back to it
-        inputRef.current?.focus();
+    if (isLoading) {
+      return;
+    }
+
+    // Store current input for restoration
+    const currentInput = inputText;
+
+    // Get color from API
+    const result = await getColorFromText({
+      text: inputText,
+      keepHistory: !!isUsingChatHistory,
+    });
+
+    if (!result.error) {
+      // Add to history if using Shift+Enter, otherwise reset history
+      if (isUsingChatHistory) {
+        setHistory((prev) => [
+          ...prev,
+          { text: currentInput, color: result.color },
+        ]);
+      } else {
+        setHistory([{ text: currentInput, color: result.color }]);
       }
+      setCurrentColor(result.color);
+      // Don't clear input immediately, just focus back to it
+      inputRef.current?.focus();
     }
   };
 
@@ -266,90 +280,108 @@ export default function Page() {
   };
 
   return (
-    <div
-      className={`w-screen h-screen ${bgColorClass} ${selectionColorClass} md:p-[5rem] p-0 flex flex-col items-center justify-center`}
-    >
-      <main
-        className="w-full h-full rounded-[3.2rem] flex flex-col relative items-center justify-center"
-        style={{
-          backgroundColor: currentColor,
-          transition: 'background-color 0.3s ease',
-        }}
-      >
-        {/* Logo */}
-        <div
-          className={`absolute md:w-auto w-[calc(100%-1rem)] top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textOpacityColorClass}`}
-        >
-          <h1 className={`text-2xl sm:text-4xl pt-2 cursor-pointer font-oi`}>
-            Text~to~Color
-          </h1>
-        </div>
-        {/* GitHub button */}
-        <div
-          className={
-            `md:absolute top-0 right-0 rounded-lg md:rounded-[3rem] ${bgColorClass} ` +
-            `flex items-center justify-center md:py-6 md:px-12 p-2 md:m-2`
+    <>
+      <Head>
+        <title>Text~to~Color</title>
+        <meta name="description" content="Text~to~Color" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content={
+            isDarkOrLightColor(currentColor) === 'dark'
+              ? 'black-translucent'
+              : 'default'
           }
+        />
+        <meta name="theme-color" content={currentColor} />
+      </Head>
+      <div
+        className={`w-screen h-dvh ${bgColorClass} ${selectionColorClass} md:p-[5rem] p-0 flex flex-col items-center justify-center`}
+      >
+        <main
+          className="w-full h-full rounded-[3.2rem] flex flex-col relative items-center justify-center"
+          style={{
+            backgroundColor: currentColor,
+            transition: 'background-color 0.3s ease',
+          }}
         >
-          <div className="flex items-center md:h-12 min-h-[2rem]">
-            <GitHubButton
-              href="https://github.com/rizese/text-to-color"
-              data-color-scheme={`no-preference: ${flippedColorMode}; light: ${flippedColorMode}; dark: ${flippedColorMode};`}
-              data-size="large"
-              data-show-count="true"
-              aria-label="Star rizese/text-to-color on GitHub"
-            >
-              Star
-            </GitHubButton>
+          {/* Logo */}
+          <div
+            className={`absolute md:w-auto w-[calc(100%-1rem)] top-0 left-0 rounded-[3rem] flex items-center justify-center py-6 px-12 m-2 ${bgColorClass} ${textOpacityColorClass}`}
+          >
+            <h1 className={`text-2xl sm:text-4xl pt-2 cursor-pointer font-oi`}>
+              Text~to~Color
+            </h1>
           </div>
-        </div>
-        {/* History */}
-        <div className="w-full max-w-2xl p-8 relative">
-          {isUsingChatHistory && history.length > 0 && (
-            <div
-              className={`w-4/5 mx-auto flex flex-col gap-0 mb-2 items-center`}
-            >
-              {history.map((item, index) => (
-                <button
-                  key={index}
-                  data-index={index}
-                  className={`p-3 w-full rounded-xl ${historyClass(
-                    index,
-                    history.length,
-                  )}  border border-2 ${borderColorClass}`}
-                  style={{
-                    backgroundColor: currentColor,
-                    transition: 'background-color 0.3s ease',
-                  }}
-                  onClick={() => {
-                    setInputText(item.text);
-                    setCurrentColor(item.color);
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-6 h-6 rounded-md border border-2 ${borderColorClass}`}
-                      style={{ backgroundColor: item.color }}
-                    ></div>
-                    <span className={`${textColorClass} italic truncate`}>
-                      &quot;{item.text}&quot;
-                    </span>
-                  </div>
-                </button>
-              ))}
+          {/* GitHub button */}
+          <div
+            className={
+              `md:absolute top-0 right-0 rounded-lg md:rounded-[3rem] ${bgColorClass} ` +
+              `flex items-center justify-center md:py-6 md:px-12 p-2 md:m-2`
+            }
+          >
+            <div className="flex items-center md:h-12 min-h-[2rem]">
+              <GitHubButton
+                href="https://github.com/rizese/text-to-color"
+                data-color-scheme={`no-preference: ${flippedColorMode}; light: ${flippedColorMode}; dark: ${flippedColorMode};`}
+                data-size="large"
+                data-show-count="true"
+                aria-label="Star rizese/text-to-color on GitHub"
+              >
+                Star
+              </GitHubButton>
             </div>
-          )}
-          {/* Input */}
-          <div className="relative mb-8">
-            <div className="relative">
-              <textarea
-                ref={inputRef}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => setIsInputFocused(true)}
-                onBlur={() => setIsInputFocused(false)}
-                className={`
+          </div>
+          {/* History */}
+          <div className="w-full max-w-2xl p-8 relative">
+            {isUsingChatHistory && history.length > 0 && (
+              <div
+                className={`w-4/5 mx-auto flex flex-col gap-0 mb-2 items-center`}
+              >
+                {history.map((item, index) => (
+                  <button
+                    key={index}
+                    data-index={index}
+                    className={`p-3 w-full rounded-xl ${historyClass(
+                      index,
+                      history.length,
+                    )}  border border-2 ${borderColorClass}`}
+                    style={{
+                      backgroundColor: currentColor,
+                      transition: 'background-color 0.3s ease',
+                    }}
+                    onClick={() => {
+                      setInputText(item.text);
+                      setCurrentColor(item.color);
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-6 h-6 rounded-md border border-2 ${borderColorClass}`}
+                        style={{ backgroundColor: item.color }}
+                      ></div>
+                      <span className={`${textColorClass} italic truncate`}>
+                        &quot;{item.text}&quot;
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Input */}
+            <div className="relative mb-8">
+              <div className="relative">
+                <textarea
+                  ref={inputRef}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => setIsInputFocused(false)}
+                  enterKeyHint="send"
+                  className={`
                 w-full p-4 text-lg border-2 rounded-xl
                 focus:ring-2 outline-none resize-none
                 overflow-hidden
@@ -357,76 +389,77 @@ export default function Page() {
                 ${focusRingColorClass} ${bgColorClass}
                 ${isLoading ? 'opacity-50 cursor-wait' : ''}
               `}
-                rows={1}
-                style={{
-                  minHeight: '4rem',
-                  height: 'auto',
-                }}
-                disabled={isLoading}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = `${target.scrollHeight}px`;
-                }}
-              />
-              {inputText && !isLoading && (
-                <button
-                  onClick={clearInput}
-                  className={`absolute right-3 top-4 md:top-3 rounded-full p-1 hover:bg-black/10 transition-colors`}
-                >
-                  <CircleX className={`w-6 h-6 ${textColorClass}`} />
-                </button>
-              )}
-              {!inputText.length && !isInputFocused && !touched && (
-                <div
-                  className={`
+                  rows={1}
+                  style={{
+                    minHeight: '4rem',
+                    height: 'auto',
+                  }}
+                  disabled={isLoading}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = `${target.scrollHeight}px`;
+                  }}
+                />
+                {inputText && !isLoading && (
+                  <button
+                    onClick={clearInput}
+                    className={`absolute right-3 top-4 md:top-3 rounded-full p-1 hover:bg-black/10 transition-colors`}
+                  >
+                    <CircleX className={`w-6 h-6 ${textColorClass}`} />
+                  </button>
+                )}
+                {!inputText.length && !isInputFocused && !touched && (
+                  <div
+                    className={`
                 absolute inset-0 pointer-events-none p-4 text-lg
                 ${isPlaceholderVisible ? 'opacity-100' : 'opacity-0'}
                 ${textColorClass}
               `}
-                >
-                  {placeholders[placeholderIndex].text}
-                </div>
-              )}
-              {isLoading && (
-                <div className="absolute right-3 top-4 md:top-3 p-1 ">
-                  <div
-                    className={`animate-spin h-6 w-6 border-2 border-t-transparent rounded-full ${borderColorClass}`}
-                  ></div>
-                </div>
-              )}
+                  >
+                    {placeholders[placeholderIndex].text}
+                  </div>
+                )}
+                {isLoading && (
+                  <div className="absolute right-3 top-4 md:top-3 p-1 ">
+                    <div
+                      className={`animate-spin h-6 w-6 border-2 border-t-transparent rounded-full ${borderColorClass}`}
+                    ></div>
+                  </div>
+                )}
+              </div>
+              <div
+                className={`sm:absolute bottom-3.5 right-3 text-xxs ${placeholderColorClass} ${textColorClass} text-right`}
+              >
+                <span className={`${bgColorClass} p-1 rounded-md`}>Enter</span>{' '}
+                to send,{' '}
+                <span className={`${bgColorClass} p-1 rounded-md`}>Shift</span>{' '}
+                to toggle chat history,{' '}
+                <span className={`${bgColorClass} p-1 rounded-md`}>Esc</span> to
+                clear input
+              </div>
             </div>
-            <div
-              className={`sm:absolute bottom-3.5 right-3 text-xxs ${placeholderColorClass} ${textColorClass} text-right`}
-            >
-              <span className={`${bgColorClass} p-1 rounded-md`}>Enter</span> to
-              send,{' '}
-              <span className={`${bgColorClass} p-1 rounded-md`}>Shift</span> to
-              toggle chat history,{' '}
-              <span className={`${bgColorClass} p-1 rounded-md`}>Esc</span> to
-              clear input
+            {/* Color values */}
+            <div className="w-full mb-8 flex flex-col md:flex-row justify-center items-center gap-2">
+              <CopyColorButton
+                className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
+                label="HEX"
+                value={currentColor}
+              />
+              <CopyColorButton
+                className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
+                label="RGB"
+                value={hexToRgb(currentColor)}
+              />
+              <CopyColorButton
+                className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
+                label="HSL"
+                value={hexToHsl(currentColor)}
+              />
             </div>
           </div>
-          {/* Color values */}
-          <div className="w-full mb-8 flex flex-col md:flex-row justify-center items-center gap-2">
-            <CopyColorButton
-              className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
-              label="HEX"
-              value={currentColor}
-            />
-            <CopyColorButton
-              className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
-              label="RGB"
-              value={hexToRgb(currentColor)}
-            />
-            <CopyColorButton
-              className={`w-full sm:w-2/3 md:w-auto ${bgHoverColorClass}`}
-              label="HSL"
-              value={hexToHsl(currentColor)}
-            />
-          </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }

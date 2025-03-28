@@ -1,20 +1,18 @@
 import { useState } from 'react';
-
-interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
+import { ChatMessage } from '@/lib/openai-service';
 
 interface TextToColorResponse {
   color: string;
-  imagery: string;
+  rawOutput?: string;
   error?: string;
 }
 
 export function useTextToColor() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>(
+    [],
+  );
 
   const getColorFromText = async ({
     text,
@@ -50,7 +48,7 @@ export function useTextToColor() {
       // Update conversation history based on the keepHistory flag
       if (keepHistory) {
         // Add this exchange to history
-        const newMessages: Message[] = [
+        const newMessages: ChatMessage[] = [
           { role: 'user', content: text },
           { role: 'assistant', content: data.rawOutput },
         ];
@@ -65,7 +63,7 @@ export function useTextToColor() {
 
       return {
         color: data.color,
-        imagery: data.imagery,
+        rawOutput: data.rawOutput,
       };
     } catch (err) {
       const errorMessage =
@@ -74,7 +72,6 @@ export function useTextToColor() {
       console.error('Error in getColorFromText:', errorMessage);
       return {
         color: '#1f1f1f',
-        imagery: 'Error occurred',
         error: errorMessage,
       };
     } finally {

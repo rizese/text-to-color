@@ -2,23 +2,33 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Database Setup
+
+This project uses PostgreSQL with Prisma for data storage.
 
 ```bash
-npm run dev
-# or
+yarn db:setup
+```
+
+### Running the Application
+
+Run the development server:
+
+```bash
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Caching System
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application implements a database caching system for text-to-color conversions:
+
+- First-time requests are processed by OpenAI and stored in the database
+- Subsequent identical requests (case-insensitive) are served from the database cache
+- Conversation-based requests (with history) bypass the cache completely
+
+This reduces API costs and improves response times for common queries.
 
 ## Learn More
 

@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Use POSTGRES_URL by default (local development)
+  url       = env("POSTGRES_URL")
+  // Use POSTGRES_PRISMA_URL for Vercel deployment (direct access)
+  directUrl = env("POSTGRES_PRISMA_URL")
+}
+
+model Session {
+  id        String         @id
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  ipAddress String?
+  requests  ColorRequest[]
+}
+
+model ColorRequest {
+  id        Int      @id @default(autoincrement())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id])
+  inputText String   @db.Text
+  hexColor  String
+  rawOutput String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([inputText])
+}

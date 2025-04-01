@@ -5,15 +5,15 @@ import { ColorResult } from './openai-service';
 /**
  * Ensures a session exists in the database
  * @param sessionId The session ID from the cookie
- * @param req The Next.js request object
+ * @param req The Next.js request object (optional)
  * @returns The session ID
  */
 export async function ensureSession(
   sessionId: string,
-  req: NextRequest,
+  req?: NextRequest | null,
 ): Promise<string> {
   // Get IP address if available
-  const ipAddress = getIpAddress(req);
+  const ipAddress = req ? getIpAddress(req) : null;
 
   // Check if session exists
   const existingSession = await prisma.session.findUnique({
